@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:jumpdium/core/constant/colors.dart';
 import 'package:jumpdium/core/constant/static_data.dart';
+import 'package:jumpdium/core/providers/theme_provider.dart';
 
 class JumpMediaPage extends StatefulWidget {
   final String link;
@@ -25,31 +26,36 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
 
   static const String URI = String.fromEnvironment('BASE_URL');
 
-  static const String smartJavascript = """
-    // Cek halaman verifikasi Cloudflare
-    const cloudflareWrapper = document.querySelector('.main-wrapper');
-    if (cloudflareWrapper) {
-      return 'cloudflare';
-    }
+  String getSmartJavascript(bool isDarkMode) {
+    final bgColor = isDarkMode ? '#1C1C1E' : '#F5F5F5';
+    final darkClass = isDarkMode ? 'dark' : 'light';
 
-    // Cek halaman 'not found' dari server
-    const notFoundElement = Array.from(document.querySelectorAll('p')).find(p => p.textContent.includes('Unable to identify the Medium article URL.'));
-    if (notFoundElement) {
-      return 'not_found';
-    }
-    
-    // Jika bukan keduanya, maka ini halaman konten. Lakukan modifikasi DOM.
-    document.documentElement.classList.add('dark');
-    document.body.style.backgroundColor = '#1C1C1E';
-    
-    const header = document.getElementById('header');
-    if (header) header.style.display = 'none';
-    
-    const bypassLink = document.querySelector('a[href*="#bypass"]');
-    if (bypassLink) bypassLink.parentElement.style.display = 'none';
+    return """
+      // Cek halaman verifikasi Cloudflare
+      const cloudflareWrapper = document.querySelector('.main-wrapper');
+      if (cloudflareWrapper) {
+        return 'cloudflare';
+      }
 
-    return 'content';
-  """;
+      // Cek halaman 'not found' dari server
+      const notFoundElement = Array.from(document.querySelectorAll('p')).find(p => p.textContent.includes('Unable to identify the Medium article URL.'));
+      if (notFoundElement) {
+        return 'not_found';
+      }
+      
+      // Jika bukan keduanya, maka ini halaman konten. Lakukan modifikasi DOM.
+      document.documentElement.classList.add('$darkClass');
+      document.body.style.backgroundColor = '$bgColor';
+      
+      const header = document.getElementById('header');
+      if (header) header.style.display = 'none';
+      
+      const bypassLink = document.querySelector('a[href*="#bypass"]');
+      if (bypassLink) bypassLink.parentElement.style.display = 'none';
+
+      return 'content';
+    """;
+  }
 
   @override
   void initState() {
@@ -59,6 +65,9 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = ThemeProvider.of(context);
+    final isDarkMode = themeProvider?.isDarkMode ?? true;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -67,7 +76,9 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
             opacity: isLoading || isNotFound ? 0.0 : 1.0,
             child: InAppWebView(
               initialUrlRequest: URLRequest(url: WebUri("$URI/${widget.link}")),
-              initialSettings: InAppWebViewSettings(forceDark: ForceDark.OFF),
+              initialSettings: InAppWebViewSettings(
+                forceDark: isDarkMode ? ForceDark.ON : ForceDark.OFF,
+              ),
               onWebViewCreated: (controller) {
                 webViewController = controller;
               },
@@ -81,7 +92,7 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
               onLoadStop: (controller, url) async {
                 // Mengevaluasi JavaScript untuk menentukan jenis halaman
                 var result = await controller.callAsyncJavaScript(
-                  functionBody: smartJavascript,
+                  functionBody: getSmartJavascript(isDarkMode),
                 );
 
                 if (!mounted) return;
@@ -116,7 +127,7 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
 
           if (isLoading)
             Container(
-              color: backgroundColor,
+              color: getBackgroundColor(isDarkMode),
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Column(
@@ -135,21 +146,21 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
                   Text(
                     "\"${loadingImgs[randomKey]!['qoute']}\"",
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontStyle: FontStyle.italic,
-                      color: Colors.white54,
+                      color: getTextColor(isDarkMode).withValues(alpha: 0.7),
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     "Lagi di hek dulu nih...",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white54,
+                      color: getTextColor(isDarkMode).withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -158,7 +169,7 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
                     child: LinearProgressIndicator(
                       value: _progress,
                       minHeight: 10,
-                      backgroundColor: Colors.grey[800],
+                      backgroundColor: getProgressBackgroundColor(isDarkMode),
                       color: primaryColor,
                     ),
                   ),
@@ -169,17 +180,19 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
                       color: primaryColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.close, color: surfaceColor),
-                        SizedBox(width: 8),
-                        Text(
-                          "Stuck lebih dari 1 menit ? close",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: surfaceColor,
+                        Icon(Icons.close, color: getSurfaceColor(isDarkMode)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Stuck lebih dari 1 menit ? close",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: getSurfaceColor(isDarkMode),
+                            ),
                           ),
                         ),
                       ],
@@ -191,7 +204,7 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
 
           if (isNotFound)
             Container(
-              color: backgroundColor,
+              color: getBackgroundColor(isDarkMode),
               alignment: Alignment.center,
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -199,19 +212,22 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
                 children: [
                   const Icon(Icons.error_outline, color: Colors.red, size: 80),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     "Oops! Article Not Found",
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: getTextColor(isDarkMode),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     "We couldn't find the Medium article from the link you provided.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: getTextColor(isDarkMode).withValues(alpha: 0.7),
+                    ),
                   ),
                   const SizedBox(height: 30),
                   ElevatedButton(

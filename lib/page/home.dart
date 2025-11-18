@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:jumpdium/core/constant/colors.dart';
 import 'package:jumpdium/core/constant/static_data.dart';
+import 'package:jumpdium/core/providers/theme_provider.dart';
 import 'package:jumpdium/core/utils/popup.dart';
 import 'package:jumpdium/core/utils/url_launcher_helper.dart';
 import 'package:jumpdium/page/jump_media_page.dart';
@@ -18,14 +19,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _searchController = TextEditingController();
   late final String randomBanner;
-
   String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     randomBanner = imgBanners[Random().nextInt(imgBanners.length)];
-
     _initPackageInfo();
   }
 
@@ -47,8 +46,25 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final currentYear = DateTime.now().year;
+    final themeProvider = ThemeProvider.of(context);
+    final isDarkMode = themeProvider?.isDarkMode ?? true;
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: getBackgroundColor(isDarkMode),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(
+              isDarkMode ? Icons.light_mode : Icons.dark_mode,
+              color: getTextColor(isDarkMode),
+            ),
+            onPressed: () {
+              themeProvider?.toggleTheme(!isDarkMode);
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -73,8 +89,8 @@ class _HomePageState extends State<HomePage> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          style: const TextStyle(
-                            color: textColor,
+                          style: TextStyle(
+                            color: getTextColor(isDarkMode),
                             fontSize: 16,
                           ),
                           decoration: InputDecoration(
@@ -83,7 +99,7 @@ class _HomePageState extends State<HomePage> {
                               color: hintColor.withValues(alpha: 0.7),
                             ),
                             filled: true,
-                            fillColor: surfaceColor,
+                            fillColor: getSurfaceColor(isDarkMode),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 20,
                               vertical: 15,
@@ -100,7 +116,6 @@ class _HomePageState extends State<HomePage> {
                         onPressed: () {
                           final link = _searchController.text.trim();
                           if (link.isNotEmpty) {
-                            // Validasi apakah link mengandung "medium.com"
                             if (link.contains("medium.com")) {
                               Navigator.push(
                                 context,
@@ -110,7 +125,6 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               );
                             } else {
-                              // Tampilkan pesan kesalahan jika tidak mengandung "medium.com"
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -121,7 +135,6 @@ class _HomePageState extends State<HomePage> {
                               );
                             }
                           } else {
-                            // Opsional: Tampilkan pesan jika input kosong
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("Please paste a link first."),
@@ -140,10 +153,10 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   const SizedBox(height: 50),
-                  const Text(
+                  Text(
                     "Sample just tap! :",
                     style: TextStyle(
-                      color: textColor,
+                      color: getTextColor(isDarkMode),
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -173,7 +186,7 @@ class _HomePageState extends State<HomePage> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: surfaceColor,
+                          color: getSurfaceColor(isDarkMode),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -183,7 +196,9 @@ class _HomePageState extends State<HomePage> {
                             Expanded(
                               child: Text(
                                 url,
-                                style: const TextStyle(color: textColor),
+                                style: TextStyle(
+                                  color: getTextColor(isDarkMode),
+                                ),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
@@ -196,7 +211,6 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
-
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -205,7 +219,6 @@ class _HomePageState extends State<HomePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
-
                       children: [
                         SocialCardWidget(
                           icon: Icons.code,
