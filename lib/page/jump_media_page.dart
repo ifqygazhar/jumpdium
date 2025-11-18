@@ -5,6 +5,9 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:jumpdium/core/constant/colors.dart';
 import 'package:jumpdium/core/constant/static_data.dart';
 import 'package:jumpdium/core/providers/theme_provider.dart';
+import 'package:jumpdium/page/widgets/link_dialog_content.dart';
+import 'package:jumpdium/page/widgets/loading_view.dart';
+import 'package:jumpdium/page/widgets/not_found_view.dart';
 
 class JumpMediaPage extends StatefulWidget {
   final String link;
@@ -17,6 +20,8 @@ class JumpMediaPage extends StatefulWidget {
 class _JumpMediaPageState extends State<JumpMediaPage> {
   final _random = Random();
   late final int randomKey;
+  late TextEditingController _textController;
+  late ScrollController _scrollController;
 
   double _progress = 0;
   InAppWebViewController? webViewController;
@@ -31,19 +36,16 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
     final darkClass = isDarkMode ? 'dark' : 'light';
 
     return """
-      // Cek halaman verifikasi Cloudflare
       const cloudflareWrapper = document.querySelector('.main-wrapper');
       if (cloudflareWrapper) {
         return 'cloudflare';
       }
 
-      // Cek halaman 'not found' dari server
       const notFoundElement = Array.from(document.querySelectorAll('p')).find(p => p.textContent.includes('Unable to identify the Medium article URL.'));
       if (notFoundElement) {
         return 'not_found';
       }
       
-      // Jika bukan keduanya, maka ini halaman konten. Lakukan modifikasi DOM.
       document.documentElement.classList.add('$darkClass');
       document.body.style.backgroundColor = '$bgColor';
       
@@ -57,10 +59,34 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
     """;
   }
 
+  void _showLinkDialog() {
+    final themeProvider = ThemeProvider.of(context);
+    final isDarkMode = themeProvider?.isDarkMode ?? true;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) => LinkDialogContent(
+        isDarkMode: isDarkMode,
+        textController: _textController,
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _textController = TextEditingController();
+    _scrollController = ScrollController();
     randomKey = _random.nextInt(loadingImgs.length);
+  }
+
+  @override
+  void dispose() {
+    webViewController?.dispose();
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -77,7 +103,46 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
             child: InAppWebView(
               initialUrlRequest: URLRequest(url: WebUri("$URI/${widget.link}")),
               initialSettings: InAppWebViewSettings(
+                // Performance improvements
                 forceDark: isDarkMode ? ForceDark.ON : ForceDark.OFF,
+                cacheEnabled: true,
+                clearCache: false,
+
+                // Rendering optimization
+                useHybridComposition: true,
+                hardwareAcceleration: true,
+
+                // Resource loading optimization
+                domStorageEnabled: true,
+                databaseEnabled: true,
+
+                // JavaScript optimization
+                javaScriptEnabled: true,
+                javaScriptCanOpenWindowsAutomatically: false,
+
+                // Media optimization
+                mediaPlaybackRequiresUserGesture: false,
+                allowsInlineMediaPlayback: true,
+
+                // Network optimization
+                useShouldInterceptRequest: false,
+
+                // Viewport optimization
+                useWideViewPort: true,
+                loadWithOverviewMode: true,
+
+                // Scroll optimization
+                verticalScrollBarEnabled: true,
+                horizontalScrollBarEnabled: false,
+
+                // Disable unnecessary features
+                supportZoom: false,
+                builtInZoomControls: false,
+                disableContextMenu: true,
+
+                // Security & Privacy (keep only necessary)
+                allowFileAccessFromFileURLs: false,
+                allowUniversalAccessFromFileURLs: false,
               ),
               onWebViewCreated: (controller) {
                 webViewController = controller;
@@ -89,8 +154,15 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
                   });
                 }
               },
+              shouldOverrideUrlLoading: (controller, navigationAction) async {
+                // Block external navigation for better performance
+                final url = navigationAction.request.url;
+                if (url != null && !url.toString().contains(URI)) {
+                  return NavigationActionPolicy.CANCEL;
+                }
+                return NavigationActionPolicy.ALLOW;
+              },
               onLoadStop: (controller, url) async {
-                // Mengevaluasi JavaScript untuk menentukan jenis halaman
                 var result = await controller.callAsyncJavaScript(
                   functionBody: getSmartJavascript(isDarkMode),
                 );
@@ -122,132 +194,41 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
                     break;
                 }
               },
+              onScrollChanged: (controller, x, y) {
+                if (_scrollController.hasClients) {
+                  _scrollController.jumpTo(y.toDouble());
+                }
+              },
+              onLoadError: (controller, url, code, message) {
+                // Handle errors gracefully
+                if (mounted) {
+                  setState(() {
+                    isLoading = false;
+                    isNotFound = true;
+                  });
+                }
+              },
             ),
           ),
 
           if (isLoading)
-            Container(
-              color: getBackgroundColor(isDarkMode),
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16.0),
-                    child: Image.asset(
-                      loadingImgs[randomKey]!['img'] as String,
-                      height: 250,
-                      width: 250,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "\"${loadingImgs[randomKey]!['qoute']}\"",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontStyle: FontStyle.italic,
-                      color: getTextColor(isDarkMode).withValues(alpha: 0.7),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "Lagi di hek dulu nih...",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: getTextColor(isDarkMode).withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: _progress,
-                      minHeight: 10,
-                      backgroundColor: getProgressBackgroundColor(isDarkMode),
-                      color: primaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: primaryColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.close, color: getSurfaceColor(isDarkMode)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "Stuck lebih dari 1 menit ? close",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: getSurfaceColor(isDarkMode),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            LoadingView(
+              isDarkMode: isDarkMode,
+              randomKey: randomKey,
+              progress: _progress,
             ),
 
-          if (isNotFound)
-            Container(
-              color: getBackgroundColor(isDarkMode),
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 80),
-                  const SizedBox(height: 20),
-                  Text(
-                    "Oops! Article Not Found",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: getTextColor(isDarkMode),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "We couldn't find the Medium article from the link you provided.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: getTextColor(isDarkMode).withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 15,
-                      ),
-                    ),
-                    child: const Text(
-                      "Go Back",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          if (isNotFound) NotFoundView(isDarkMode: isDarkMode),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showLinkDialog,
+        backgroundColor: primaryColor,
+        icon: const Icon(Icons.add_link, color: Colors.white),
+        label: const Text(
+          "Jump",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
