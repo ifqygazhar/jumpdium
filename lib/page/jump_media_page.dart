@@ -11,7 +11,12 @@ import 'package:jumpdium/page/widgets/not_found_view.dart';
 
 class JumpMediaPage extends StatefulWidget {
   final String link;
-  const JumpMediaPage({super.key, required this.link});
+  final bool isMediumLink;
+  const JumpMediaPage({
+    super.key,
+    required this.link,
+    this.isMediumLink = true,
+  });
 
   @override
   State<JumpMediaPage> createState() => _JumpMediaPageState();

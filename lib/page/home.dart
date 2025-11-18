@@ -20,6 +20,7 @@ class _HomePageState extends State<HomePage> {
   final _searchController = TextEditingController();
   late final String randomBanner;
   String _appVersion = '';
+  bool isMediumLink = true;
 
   @override
   void initState() {
@@ -41,6 +42,83 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Widget _buildLinkTypeSelector(bool isDarkMode) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: getSurfaceColor(isDarkMode),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildOptionButton(
+              label: "Medium",
+              icon: Icons.article,
+              isSelected: isMediumLink,
+              isDarkMode: isDarkMode,
+              onTap: () {
+                setState(() {
+                  isMediumLink = true;
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: _buildOptionButton(
+              label: "Other Link",
+              icon: Icons.public,
+              isSelected: !isMediumLink,
+              isDarkMode: isDarkMode,
+              onTap: () {
+                setState(() {
+                  isMediumLink = false;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionButton({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required bool isDarkMode,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? Colors.white : hintColor, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : getTextColor(isDarkMode),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -84,6 +162,11 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 40),
+
+                  // Link Type Selector
+                  _buildLinkTypeSelector(isDarkMode),
+
+                  // Search Field with Send Button
                   Row(
                     children: [
                       Expanded(
@@ -94,7 +177,9 @@ class _HomePageState extends State<HomePage> {
                             fontSize: 16,
                           ),
                           decoration: InputDecoration(
-                            hintText: "Paste a Medium link...",
+                            hintText: isMediumLink
+                                ? "Paste a Medium link..."
+                                : "Paste any article link...",
                             hintStyle: TextStyle(
                               color: hintColor.withValues(alpha: 0.7),
                             ),
@@ -115,32 +200,38 @@ class _HomePageState extends State<HomePage> {
                       ElevatedButton(
                         onPressed: () {
                           final link = _searchController.text.trim();
-                          if (link.isNotEmpty) {
-                            if (link.contains("medium.com")) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      JumpMediaPage(link: link),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Please enter a valid Medium.com link.",
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          } else {
+
+                          if (link.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("Please paste a link first."),
+                                backgroundColor: Colors.red,
                               ),
                             );
+                            return;
                           }
+
+                          if (isMediumLink && !link.contains("medium.com")) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "Please enter a valid Medium.com link.",
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => JumpMediaPage(
+                                link: link,
+                                isMediumLink: isMediumLink,
+                              ),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           shape: const CircleBorder(),
@@ -152,7 +243,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 50),
+
+                  const SizedBox(height: 20),
                   Text(
                     "Sample just tap! :",
                     style: TextStyle(
@@ -178,7 +270,11 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => JumpMediaPage(link: url),
+                            builder: (context) => JumpMediaPage(
+                              link: url,
+                              isMediumLink:
+                                  true, // Sample URLs are Medium links
+                            ),
                           ),
                         );
                       },
