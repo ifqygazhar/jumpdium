@@ -3,6 +3,7 @@ import 'package:jumpdium/core/constant/colors.dart';
 import 'package:jumpdium/core/providers/theme_provider.dart';
 import 'package:jumpdium/page/home.dart';
 import 'package:jumpdium/page/widgets/connectivity_wrapper.dart';
+import 'package:upgrader/upgrader.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +29,12 @@ class MyApp extends StatelessWidget {
             ),
             supportedLocales: const [Locale('en', '')],
             locale: const Locale('en', ''),
-            home: const ConnectivityWrapper(child: HomePage()),
+            home: UpgradeAlert(
+              upgrader: Upgrader(
+                durationUntilAlertAgain: const Duration(days: 1),
+              ),
+              child: const ConnectivityWrapper(child: HomePage()),
+            ),
           );
         },
       ),

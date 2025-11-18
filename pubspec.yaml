@@ -39,6 +39,8 @@ dependencies:
   internet_connection_checker_plus: ^2.7.2
   url_launcher: ^6.3.2
   shared_preferences: ^2.5.3
+  in_app_review: ^2.0.11
+  upgrader: ^12.3.0
 
 dev_dependencies:
   flutter_test:

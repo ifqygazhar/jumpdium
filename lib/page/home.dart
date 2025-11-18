@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:jumpdium/core/constant/colors.dart';
 import 'package:jumpdium/core/constant/static_data.dart';
 import 'package:jumpdium/core/providers/theme_provider.dart';
+import 'package:jumpdium/core/service/review_service.dart';
 import 'package:jumpdium/core/utils/popup.dart';
 import 'package:jumpdium/core/utils/url_launcher_helper.dart';
 import 'package:jumpdium/page/jump_media_page.dart';
@@ -18,6 +19,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _searchController = TextEditingController();
+  final _reviewService = ReviewService();
   late final String randomBanner;
   String _appVersion = '';
   bool isMediumLink = true;
@@ -27,6 +29,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     randomBanner = imgBanners[Random().nextInt(imgBanners.length)];
     _initPackageInfo();
+    _checkAndShowReviewPrompt();
   }
 
   Future<void> _initPackageInfo() async {
@@ -36,6 +39,127 @@ class _HomePageState extends State<HomePage> {
         _appVersion = 'v${info.version}';
       });
     }
+  }
+
+  Future<void> _checkAndShowReviewPrompt() async {
+    await _reviewService.incrementAppOpenCount();
+
+    if (await _reviewService.shouldShowReviewPrompt()) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _showReviewDialog();
+        }
+      });
+    }
+  }
+
+  void _showReviewDialog() {
+    final isDarkMode = ThemeProvider.of(context)?.isDarkMode ?? true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: getSurfaceColor(isDarkMode),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.star, color: Colors.amber, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              'Enjoying Jumpdium?',
+              style: TextStyle(
+                color: getTextColor(isDarkMode),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Would you like to rate us? It helps us improve the app!',
+          style: TextStyle(
+            color: getTextColor(isDarkMode).withValues(alpha: 0.8),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _reviewService.markReviewAsCompleted();
+            },
+            child: const Text('Not Now', style: TextStyle(color: hintColor)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _reviewService.requestReview();
+              // Tampilkan opsi store setelah review
+              _showStoreOptionDialog();
+            },
+            child: const Text(
+              'Rate App',
+              style: TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStoreOptionDialog() {
+    final isDarkMode = ThemeProvider.of(context)?.isDarkMode ?? true;
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: getSurfaceColor(isDarkMode),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Thank You! 🎉',
+            style: TextStyle(
+              color: getTextColor(isDarkMode),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Would you like to leave a detailed review on the store?',
+            style: TextStyle(
+              color: getTextColor(isDarkMode).withValues(alpha: 0.8),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Maybe Later',
+                style: TextStyle(color: hintColor),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _reviewService.openStoreListing();
+              },
+              child: const Text(
+                'Go to Store',
+                style: TextStyle(
+                  color: primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   @override
@@ -140,6 +264,10 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               themeProvider?.toggleTheme(!isDarkMode);
             },
+          ),
+          IconButton(
+            icon: Icon(Icons.star_border, color: getTextColor(isDarkMode)),
+            onPressed: _showReviewDialog,
           ),
         ],
       ),
