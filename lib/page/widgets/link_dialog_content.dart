@@ -152,8 +152,7 @@ class _LinkDialogContentState extends State<LinkDialogContent> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          JumpMediaPage(link: link, isMediumLink: isMediumLink),
+                      builder: (context) => JumpMediaPage(link: link),
                     ),
                   );
                 },

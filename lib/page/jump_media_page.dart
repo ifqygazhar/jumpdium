@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -11,12 +12,8 @@ import 'package:jumpdium/page/widgets/not_found_view.dart';
 
 class JumpMediaPage extends StatefulWidget {
   final String link;
-  final bool isMediumLink;
-  const JumpMediaPage({
-    super.key,
-    required this.link,
-    this.isMediumLink = true,
-  });
+
+  const JumpMediaPage({super.key, required this.link});
 
   @override
   State<JumpMediaPage> createState() => _JumpMediaPageState();
@@ -108,46 +105,21 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
             child: InAppWebView(
               initialUrlRequest: URLRequest(url: WebUri("$URI/${widget.link}")),
               initialSettings: InAppWebViewSettings(
-                // Performance improvements
                 forceDark: isDarkMode ? ForceDark.ON : ForceDark.OFF,
                 cacheEnabled: true,
                 clearCache: false,
-
-                // Rendering optimization
                 useHybridComposition: true,
                 hardwareAcceleration: true,
-
-                // Resource loading optimization
                 domStorageEnabled: true,
                 databaseEnabled: true,
-
-                // JavaScript optimization
-                javaScriptEnabled: true,
-                javaScriptCanOpenWindowsAutomatically: false,
-
-                // Media optimization
-                mediaPlaybackRequiresUserGesture: false,
-                allowsInlineMediaPlayback: true,
-
-                // Network optimization
-                useShouldInterceptRequest: false,
-
-                // Viewport optimization
-                useWideViewPort: true,
-                loadWithOverviewMode: true,
-
-                // Scroll optimization
-                verticalScrollBarEnabled: true,
-                horizontalScrollBarEnabled: false,
-
-                // Disable unnecessary features
-                supportZoom: false,
+                supportZoom: true,
                 builtInZoomControls: false,
                 disableContextMenu: true,
-
-                // Security & Privacy (keep only necessary)
-                allowFileAccessFromFileURLs: false,
-                allowUniversalAccessFromFileURLs: false,
+                javaScriptEnabled: true,
+                javaScriptCanOpenWindowsAutomatically: true,
+                mediaPlaybackRequiresUserGesture: false,
+                allowFileAccess: true,
+                allowContentAccess: true,
               ),
               onWebViewCreated: (controller) {
                 webViewController = controller;
@@ -159,13 +131,23 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
                   });
                 }
               },
-              shouldOverrideUrlLoading: (controller, navigationAction) async {
-                // Block external navigation for better performance
-                final url = navigationAction.request.url;
-                if (url != null && !url.toString().contains(URI)) {
-                  return NavigationActionPolicy.CANCEL;
+              onLoadError: (controller, url, code, message) {
+                debugPrint('Load Error: $code - $message');
+                if (mounted) {
+                  setState(() {
+                    isLoading = false;
+                    isNotFound = true;
+                  });
                 }
-                return NavigationActionPolicy.ALLOW;
+              },
+              onLoadHttpError: (controller, url, statusCode, description) {
+                debugPrint('HTTP Error: $statusCode - $description');
+                if (mounted) {
+                  setState(() {
+                    isLoading = false;
+                    isNotFound = true;
+                  });
+                }
               },
               onLoadStop: (controller, url) async {
                 var result = await controller.callAsyncJavaScript(
@@ -199,20 +181,6 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
                     break;
                 }
               },
-              onScrollChanged: (controller, x, y) {
-                if (_scrollController.hasClients) {
-                  _scrollController.jumpTo(y.toDouble());
-                }
-              },
-              onLoadError: (controller, url, code, message) {
-                // Handle errors gracefully
-                if (mounted) {
-                  setState(() {
-                    isLoading = false;
-                    isNotFound = true;
-                  });
-                }
-              },
             ),
           ),
 
@@ -222,7 +190,6 @@ class _JumpMediaPageState extends State<JumpMediaPage> {
               randomKey: randomKey,
               progress: _progress,
             ),
-
           if (isNotFound) NotFoundView(isDarkMode: isDarkMode),
         ],
       ),

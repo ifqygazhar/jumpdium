@@ -354,10 +354,7 @@ class _HomePageState extends State<HomePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => JumpMediaPage(
-                                link: link,
-                                isMediumLink: isMediumLink,
-                              ),
+                              builder: (context) => JumpMediaPage(link: link),
                             ),
                           );
                         },
@@ -398,11 +395,7 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => JumpMediaPage(
-                              link: url,
-                              isMediumLink:
-                                  true, // Sample URLs are Medium links
-                            ),
+                            builder: (context) => JumpMediaPage(link: url),
                           ),
                         );
                       },

@@ -64,28 +64,33 @@ class LoadingView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: primaryColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.close, color: getSurfaceColor(isDarkMode)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    "Stuck lebih dari 1 menit ? close",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: getSurfaceColor(isDarkMode),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).pop();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.close, color: getSurfaceColor(isDarkMode)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Stuck lebih dari 1 menit ? close",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: getSurfaceColor(isDarkMode),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

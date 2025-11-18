@@ -12,10 +12,19 @@ const List<String> testingURLs = [
 ];
 
 const loadingImgs = {
-  0: {'qoute': "Malass mending buka fesnuk", 'img': 'assets/bocilheker.jpg'},
+  0: {
+    'qoute': "Malass mending buka fesnuk",
+    'img': 'assets/bocilheker.jpg',
+    'fallback': 'Preparing your article...',
+  },
   1: {
     'qoute': "Kominfo : Hacker jangan menyerang !",
     'img': 'assets/kominfo.webp',
+    'fallback': 'Loading content...',
   },
-  2: {'qoute': "Loading dulu le sabar", 'img': 'assets/nyerah.jpg'},
+  2: {
+    'qoute': "Loading dulu le sabar",
+    'img': 'assets/nyerah.jpg',
+    'fallback': 'Almost there...',
+  },
 };
